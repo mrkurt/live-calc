@@ -195,70 +195,72 @@ defmodule CalculatorWeb.CalculatorLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="min-h-screen flex flex-col">
-      <div class="flex-grow flex items-center justify-center">
-        <div class="calculator">
-          <div class="formula"><%= @formula %></div>
-          <div class="display"><%= @display %></div>
+    <main class="min-h-screen bg-black md:bg-black flex flex-col">
+      <div class="flex-1 bg-zinc-900 md:bg-black flex items-center justify-center">
+        <div id="calculator" class="w-full max-w-md aspect-[3/4] md:aspect-auto md:w-[380px] md:h-[600px]">
+          <div class="h-full flex flex-col p-2 md:p-4 md:bg-zinc-900 md:rounded-2xl">
+            <div class="flex flex-col items-end justify-end mb-4">
+              <output class="text-white text-5xl md:text-6xl"><%= @display %></output>
+              <output class="text-zinc-500 text-lg py-2"><%= if @formula == "", do: "waiting...", else: @formula %></output>
+            </div>
 
-          <div class="keypad" phx-window-keydown="keydown">
-            <button phx-click="clear" class="clear">C</button>
-            <button phx-click="operation" phx-value-op="/" class="operator">÷</button>
-            <button phx-click="operation" phx-value-op="*" class="operator">×</button>
-            <button phx-click="operation" phx-value-op="-" class="operator">−</button>
+            <div class="grid grid-cols-4 gap-[3%] aspect-square h-[75%]" phx-window-keydown="keydown">
+              <button phx-click="clear" class="aspect-square text-xl bg-zinc-800 rounded-full hover:bg-zinc-700 flex items-center justify-center">C</button>
+              <button phx-click="operation" phx-value-op="+/-" class="aspect-square text-xl bg-zinc-800 rounded-full hover:bg-zinc-700 flex items-center justify-center">+/-</button>
+              <button phx-click="operation" phx-value-op="%" class="aspect-square text-xl bg-zinc-800 rounded-full hover:bg-zinc-700 flex items-center justify-center">%</button>
+              <button phx-click="operation" phx-value-op="/" class="aspect-square text-xl bg-orange-500 rounded-full hover:bg-orange-400 flex items-center justify-center">÷</button>
 
-            <button phx-click="digit" phx-value-digit="7">7</button>
-            <button phx-click="digit" phx-value-digit="8">8</button>
-            <button phx-click="digit" phx-value-digit="9">9</button>
-            <button phx-click="operation" phx-value-op="+" class="operator plus">+</button>
+              <button phx-click="digit" phx-value-digit="7" class="aspect-square text-xl bg-zinc-800 rounded-full hover:bg-zinc-700 flex items-center justify-center">7</button>
+              <button phx-click="digit" phx-value-digit="8" class="aspect-square text-xl bg-zinc-800 rounded-full hover:bg-zinc-700 flex items-center justify-center">8</button>
+              <button phx-click="digit" phx-value-digit="9" class="aspect-square text-xl bg-zinc-800 rounded-full hover:bg-zinc-700 flex items-center justify-center">9</button>
+              <button phx-click="operation" phx-value-op="*" class="aspect-square text-xl bg-orange-500 rounded-full hover:bg-orange-400 flex items-center justify-center">×</button>
 
-            <button phx-click="digit" phx-value-digit="4">4</button>
-            <button phx-click="digit" phx-value-digit="5">5</button>
-            <button phx-click="digit" phx-value-digit="6">6</button>
+              <button phx-click="digit" phx-value-digit="4" class="aspect-square text-xl bg-zinc-800 rounded-full hover:bg-zinc-700 flex items-center justify-center">4</button>
+              <button phx-click="digit" phx-value-digit="5" class="aspect-square text-xl bg-zinc-800 rounded-full hover:bg-zinc-700 flex items-center justify-center">5</button>
+              <button phx-click="digit" phx-value-digit="6" class="aspect-square text-xl bg-zinc-800 rounded-full hover:bg-zinc-700 flex items-center justify-center">6</button>
+              <button phx-click="operation" phx-value-op="-" class="aspect-square text-xl bg-orange-500 rounded-full hover:bg-orange-400 flex items-center justify-center">−</button>
 
-            <button phx-click="digit" phx-value-digit="1">1</button>
-            <button phx-click="digit" phx-value-digit="2">2</button>
-            <button phx-click="digit" phx-value-digit="3">3</button>
+              <button phx-click="digit" phx-value-digit="1" class="aspect-square text-xl bg-zinc-800 rounded-full hover:bg-zinc-700 flex items-center justify-center">1</button>
+              <button phx-click="digit" phx-value-digit="2" class="aspect-square text-xl bg-zinc-800 rounded-full hover:bg-zinc-700 flex items-center justify-center">2</button>
+              <button phx-click="digit" phx-value-digit="3" class="aspect-square text-xl bg-zinc-800 rounded-full hover:bg-zinc-700 flex items-center justify-center">3</button>
+              <button phx-click="operation" phx-value-op="+" class="aspect-square text-xl bg-orange-500 rounded-full hover:bg-orange-400 flex items-center justify-center">+</button>
 
-            <button phx-click="digit" phx-value-digit="0" class="zero">0</button>
-            <button phx-click="digit" phx-value-digit=".">.</button>
-            <button phx-click="calculate" class="calculate">=</button>
+              <button phx-click="digit" phx-value-digit="0" class="col-span-2 text-xl bg-zinc-800 rounded-full hover:bg-zinc-700 flex items-center ps-[38%]">0</button>
+              <button phx-click="digit" phx-value-digit="." class="aspect-square text-xl bg-zinc-800 rounded-full hover:bg-zinc-700 flex items-center justify-center">.</button>
+              <button phx-click="calculate" class="aspect-square text-xl bg-orange-500 rounded-full hover:bg-orange-400 flex items-center justify-center">=</button>
+            </div>
           </div>
         </div>
       </div>
 
-      <div id="status-bar" class="status-bar" phx-hook="Ping">
-        <div class="flex justify-between items-center">
-          <div class="regions-list">
-            <span class="region-item">
-              <span class="region-name">
-                <%= Calculator.Regions.get_flag(System.get_env("FLY_REGION")) %>
-                <%= System.get_env("FLY_REGION") || "LOCAL" %>
-              </span>
-              <span class="region-ping">
-                <%= if @client_latency do %>
-                  <%= @client_latency %>ms
-                <% else %>
-                  -
-                <% end %>
-              </span>
-            </span>
+      <div id="status-bar" phx-hook="Ping" class="fixed bottom-0 left-0 right-0 p-2 bg-fuchsia-900/30 backdrop-blur-sm border-t border-fuchsia-800/20">
+        <div class="max-w-4xl mx-auto px-4 text-sm text-zinc-400 flex items-center">
+          <div class="flex items-center gap-2">
+            <%= Calculator.Regions.get_flag(System.get_env("FLY_REGION")) %>
+            <span><%= System.get_env("FLY_REGION") || "LOCAL" %></span>
+            <span><%= if @client_latency, do: "#{@client_latency}ms", else: "-" %></span>
           </div>
 
-          <div class="regions-list">
-            <%= for region <- @regions do %>
-              <span class="region-item">
-                <span class="region-name">
-                  <%= region.flag %>
-                  <%= region.region %>
-                </span>
-                <span class="region-ping"><%= region.ping_ms %>ms</span>
+          <div class="flex-1 flex gap-6 justify-end">
+            <%= if Enum.empty?(@regions) do %>
+              <span class="flex items-center gap-2">
+                🏁
+                <span>DEV</span>
+                <span>150ms</span>
               </span>
+            <% else %>
+              <%= for region <- @regions do %>
+                <span class="flex items-center gap-2">
+                  <%= region.flag %>
+                  <span><%= region.region %></span>
+                  <span><%= region.ping_ms %>ms</span>
+                </span>
+              <% end %>
             <% end %>
           </div>
         </div>
       </div>
-    </div>
+    </main>
     """
   end
 end
