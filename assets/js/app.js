@@ -22,21 +22,12 @@ import {Socket} from "phoenix"
 import {LiveSocket} from "phoenix_live_view"
 import topbar from "../vendor/topbar"
 import ScrollIndicator from "./hooks/scroll_indicator"
+import Ping from "./hooks/ping"
 
 let csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 
 let Hooks = {
-  Ping: {
-    mounted() {
-      this.handleEvent("ping", () => {
-        const start = performance.now()
-        this.pushEvent("ping", {}, () => {
-          const latency = Math.round(performance.now() - start)
-          this.pushEvent("latency", { ms: latency })
-        })
-      })
-    }
-  },
+  Ping,
   ScrollIndicator
 }
 
