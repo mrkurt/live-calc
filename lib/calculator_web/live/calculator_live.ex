@@ -1,7 +1,17 @@
 defmodule CalculatorWeb.CalculatorLive do
   use CalculatorWeb, :live_view
 
+  @topic "calculator"
+  @sync_topic "calculator_sync"
+
   def mount(_params, _session, socket) do
+    if connected?(socket) do
+      Phoenix.PubSub.subscribe(Calculator.PubSub, @topic)
+      # Request current state when a new client connects
+      Phoenix.PubSub.broadcast(Calculator.PubSub, @sync_topic, {:request_current_state, self()})
+      Phoenix.PubSub.subscribe(Calculator.PubSub, @sync_topic)
+    end
+
     {:ok, assign(socket,
       display: "0",
       first_number: nil,
@@ -10,17 +20,43 @@ defmodule CalculatorWeb.CalculatorLive do
     )}
   end
 
+  # Handle state request from new clients
+  def handle_info({:request_current_state, requester_pid}, %{assigns: assigns} = socket) do
+    if assigns.display != "0" or assigns.first_number != nil do
+      current_state = %{
+        display: assigns.display,
+        first_number: assigns.first_number,
+        operation: assigns.operation,
+        next_clear: assigns.next_clear
+      }
+      Phoenix.PubSub.broadcast(Calculator.PubSub, @sync_topic, {:current_state, current_state})
+    end
+    {:noreply, socket}
+  end
+
+  # Receive current state as a new client
+  def handle_info({:current_state, state}, socket) do
+    {:noreply, assign(socket, state)}
+  end
+
+  def handle_info({:calculator_update, new_state}, socket) do
+    {:noreply, assign(socket, new_state)}
+  end
+
   def handle_event("digit", %{"digit" => digit}, %{assigns: %{display: display, next_clear: next_clear}} = socket) do
     new_display = if next_clear or display == "0", do: digit, else: display <> digit
+    broadcast_change(%{display: new_display, next_clear: false})
     {:noreply, assign(socket, display: new_display, next_clear: false)}
   end
 
   def handle_event("operation", %{"op" => op}, %{assigns: %{display: display}} = socket) do
-    {:noreply, assign(socket,
+    new_state = %{
       first_number: parse_number(display),
       operation: op,
       next_clear: true
-    )}
+    }
+    broadcast_change(new_state)
+    {:noreply, assign(socket, new_state)}
   end
 
   def handle_event("calculate", _params, %{assigns: %{display: display, first_number: first, operation: op}} = socket) when not is_nil(first) and not is_nil(op) do
@@ -33,21 +69,29 @@ defmodule CalculatorWeb.CalculatorLive do
     end
     |> format_result()
 
-    {:noreply, assign(socket,
+    new_state = %{
       display: result,
       first_number: nil,
       operation: nil,
       next_clear: true
-    )}
+    }
+    broadcast_change(new_state)
+    {:noreply, assign(socket, new_state)}
   end
 
   def handle_event("clear", _params, socket) do
-    {:noreply, assign(socket,
+    new_state = %{
       display: "0",
       first_number: nil,
       operation: nil,
       next_clear: false
-    )}
+    }
+    broadcast_change(new_state)
+    {:noreply, assign(socket, new_state)}
+  end
+
+  defp broadcast_change(new_state) do
+    Phoenix.PubSub.broadcast(Calculator.PubSub, @topic, {:calculator_update, new_state})
   end
 
   defp parse_number(string) do
