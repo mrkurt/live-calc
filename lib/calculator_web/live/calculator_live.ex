@@ -26,46 +26,6 @@ defmodule CalculatorWeb.CalculatorLive do
   end
 
   @impl true
-  def handle_event("ping", _params, socket) do
-    {:noreply, socket}
-  end
-
-  @impl true
-  def handle_event("latency", %{"ms" => ms}, socket) do
-    {:noreply, assign(socket, client_latency: ms)}
-  end
-
-  @impl true
-  def handle_info(:update_regions, socket) do
-    regions = Calculator.Regions.connected_nodes_with_ping()
-    {:noreply, assign(socket, regions: regions)}
-  end
-
-  # Handle state request from new clients
-  def handle_info({:request_current_state, requester_pid}, %{assigns: assigns} = socket) do
-    if assigns.display != "0" or assigns.first_number != nil do
-      current_state = %{
-        display: assigns.display,
-        formula: assigns.formula,
-        first_number: assigns.first_number,
-        operation: assigns.operation,
-        next_clear: assigns.next_clear
-      }
-      Phoenix.PubSub.broadcast(Calculator.PubSub, @sync_topic, {:current_state, current_state})
-    end
-    {:noreply, socket}
-  end
-
-  # Receive current state as a new client
-  def handle_info({:current_state, state}, socket) do
-    {:noreply, assign(socket, state)}
-  end
-
-  def handle_info({:calculator_update, new_state}, socket) do
-    {:noreply, assign(socket, new_state)}
-  end
-
-  # Handle keyboard input
   def handle_event("keydown", %{"key" => key}, socket) do
     case key do
       key when key in ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "."] ->
@@ -98,12 +58,14 @@ defmodule CalculatorWeb.CalculatorLive do
     end
   end
 
+  @impl true
   def handle_event("digit", %{"digit" => digit}, %{assigns: %{display: display, next_clear: next_clear}} = socket) do
     new_display = if next_clear or display == "0", do: digit, else: display <> digit
     broadcast_change(%{display: new_display, next_clear: false})
     {:noreply, assign(socket, display: new_display, next_clear: false)}
   end
 
+  @impl true
   def handle_event("operation", %{"op" => op}, %{assigns: %{display: display, first_number: first, operation: prev_op, formula: formula}} = socket) do
     operator_symbol = get_operator_symbol(op)
     current = parse_number(display)
@@ -127,6 +89,7 @@ defmodule CalculatorWeb.CalculatorLive do
     {:noreply, assign(socket, new_state)}
   end
 
+  @impl true
   def handle_event("calculate", _params, %{assigns: %{display: display, first_number: first, operation: op, formula: formula}} = socket) when not is_nil(first) and not is_nil(op) do
     second = parse_number(display)
     result = calculate(first, second, op) |> format_result()
@@ -142,6 +105,7 @@ defmodule CalculatorWeb.CalculatorLive do
     {:noreply, assign(socket, new_state)}
   end
 
+  @impl true
   def handle_event("clear", _params, socket) do
     new_state = %{
       display: "0",
@@ -151,6 +115,46 @@ defmodule CalculatorWeb.CalculatorLive do
       next_clear: false
     }
     broadcast_change(new_state)
+    {:noreply, assign(socket, new_state)}
+  end
+
+  @impl true
+  def handle_event("ping", _params, socket) do
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_event("latency", %{"ms" => ms}, socket) do
+    {:noreply, assign(socket, client_latency: ms)}
+  end
+
+  @impl true
+  def handle_info(:update_regions, socket) do
+    regions = Calculator.Regions.connected_nodes_with_ping()
+    {:noreply, assign(socket, regions: regions)}
+  end
+
+  # Handle state request from new clients
+  def handle_info({:request_current_state, _requester_pid}, %{assigns: assigns} = socket) do
+    if assigns.display != "0" or assigns.first_number != nil do
+      current_state = %{
+        display: assigns.display,
+        formula: assigns.formula,
+        first_number: assigns.first_number,
+        operation: assigns.operation,
+        next_clear: assigns.next_clear
+      }
+      Phoenix.PubSub.broadcast(Calculator.PubSub, @sync_topic, {:current_state, current_state})
+    end
+    {:noreply, socket}
+  end
+
+  # Receive current state as a new client
+  def handle_info({:current_state, state}, socket) do
+    {:noreply, assign(socket, state)}
+  end
+
+  def handle_info({:calculator_update, new_state}, socket) do
     {:noreply, assign(socket, new_state)}
   end
 
