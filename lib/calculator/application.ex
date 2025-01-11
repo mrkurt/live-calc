@@ -13,8 +13,8 @@ defmodule Calculator.Application do
       {Phoenix.PubSub, name: Calculator.PubSub},
       # Start the Finch HTTP client for sending emails
       {Finch, name: Calculator.Finch},
-      # Start a worker by calling: Calculator.Worker.start_link(arg)
-      # {Calculator.Worker, arg},
+      # Start the regions cache
+      Calculator.Regions,
       # Start to serve requests, typically the last entry
       CalculatorWeb.Endpoint
     ]

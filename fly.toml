@@ -9,13 +9,15 @@ kill_timeout = "5s"
 [env]
   PHX_HOST = "live-calc-demo.fly.dev"
   PORT = "8080"
+  RELEASE_COOKIE = "live-calc-demo-cookie"
+  DNS_CLUSTER_QUERY = "live-calc-demo.internal"
 
 [http_service]
   internal_port = 8080
   force_https = true
   auto_stop_machines = true
   auto_start_machines = true
-  min_machines_running = 0
+  min_machines_running = 6
   processes = ["app"]
 
   [http_service.concurrency]

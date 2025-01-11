@@ -3,13 +3,15 @@ defmodule CalculatorWeb.CalculatorLive do
 
   @topic "calculator"
   @sync_topic "calculator_sync"
+  @region_interval 5000 # Update regions every 5 seconds
 
+  @impl true
   def mount(_params, _session, socket) do
     if connected?(socket) do
       Phoenix.PubSub.subscribe(Calculator.PubSub, @topic)
-      # Request current state when a new client connects
-      Phoenix.PubSub.broadcast(Calculator.PubSub, @sync_topic, {:request_current_state, self()})
       Phoenix.PubSub.subscribe(Calculator.PubSub, @sync_topic)
+      :timer.send_interval(@region_interval, :update_regions)
+      send(self(), :update_regions)
     end
 
     {:ok, assign(socket,
@@ -17,8 +19,26 @@ defmodule CalculatorWeb.CalculatorLive do
       formula: "",
       first_number: nil,
       operation: nil,
-      next_clear: false
+      next_clear: false,
+      regions: [],
+      client_latency: nil
     )}
+  end
+
+  @impl true
+  def handle_event("ping", _params, socket) do
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_event("latency", %{"ms" => ms}, socket) do
+    {:noreply, assign(socket, client_latency: ms)}
+  end
+
+  @impl true
+  def handle_info(:update_regions, socket) do
+    regions = Calculator.Regions.connected_nodes_with_ping()
+    {:noreply, assign(socket, regions: regions)}
   end
 
   # Handle state request from new clients
@@ -172,35 +192,71 @@ defmodule CalculatorWeb.CalculatorLive do
     end
   end
 
+  @impl true
   def render(assigns) do
     ~H"""
-    <div class="calculator-container" phx-window-keydown="keydown">
-      <div class="display-container">
-        <div class="formula"><%= @formula %></div>
-        <div class="display"><%= @display %></div>
+    <div class="min-h-screen flex flex-col">
+      <div class="flex-grow flex items-center justify-center">
+        <div class="calculator">
+          <div class="formula"><%= @formula %></div>
+          <div class="display"><%= @display %></div>
+
+          <div class="keypad" phx-window-keydown="keydown">
+            <button phx-click="clear" class="clear">C</button>
+            <button phx-click="operation" phx-value-op="/" class="operator">÷</button>
+            <button phx-click="operation" phx-value-op="*" class="operator">×</button>
+            <button phx-click="operation" phx-value-op="-" class="operator">−</button>
+
+            <button phx-click="digit" phx-value-digit="7">7</button>
+            <button phx-click="digit" phx-value-digit="8">8</button>
+            <button phx-click="digit" phx-value-digit="9">9</button>
+            <button phx-click="operation" phx-value-op="+" class="operator plus">+</button>
+
+            <button phx-click="digit" phx-value-digit="4">4</button>
+            <button phx-click="digit" phx-value-digit="5">5</button>
+            <button phx-click="digit" phx-value-digit="6">6</button>
+
+            <button phx-click="digit" phx-value-digit="1">1</button>
+            <button phx-click="digit" phx-value-digit="2">2</button>
+            <button phx-click="digit" phx-value-digit="3">3</button>
+
+            <button phx-click="digit" phx-value-digit="0" class="zero">0</button>
+            <button phx-click="digit" phx-value-digit=".">.</button>
+            <button phx-click="calculate" class="calculate">=</button>
+          </div>
+        </div>
       </div>
-      <div class="keypad">
-        <button phx-click="digit" phx-value-digit="7">7</button>
-        <button phx-click="digit" phx-value-digit="8">8</button>
-        <button phx-click="digit" phx-value-digit="9">9</button>
-        <button class={"operator #{if @operation == "/", do: "active"}"} phx-click="operation" phx-value-op="/">/</button>
 
-        <button phx-click="digit" phx-value-digit="4">4</button>
-        <button phx-click="digit" phx-value-digit="5">5</button>
-        <button phx-click="digit" phx-value-digit="6">6</button>
-        <button class={"operator #{if @operation == "*", do: "active"}"} phx-click="operation" phx-value-op="*">×</button>
+      <div id="status-bar" class="status-bar" phx-hook="Ping">
+        <div class="flex justify-between items-center">
+          <div class="regions-list">
+            <span class="region-item">
+              <span class="region-name">
+                <%= Calculator.Regions.get_flag(System.get_env("FLY_REGION")) %>
+                <%= System.get_env("FLY_REGION") || "LOCAL" %>
+              </span>
+              <span class="region-ping">
+                <%= if @client_latency do %>
+                  <%= @client_latency %>ms
+                <% else %>
+                  -
+                <% end %>
+              </span>
+            </span>
+          </div>
 
-        <button phx-click="digit" phx-value-digit="1">1</button>
-        <button phx-click="digit" phx-value-digit="2">2</button>
-        <button phx-click="digit" phx-value-digit="3">3</button>
-        <button class={"operator #{if @operation == "-", do: "active"}"} phx-click="operation" phx-value-op="-">-</button>
-
-        <button phx-click="digit" phx-value-digit="0">0</button>
-        <button phx-click="digit" phx-value-digit=".">.</button>
-        <button class="equals" phx-click="calculate">=</button>
-        <button class={"operator #{if @operation == "+", do: "active"}"} phx-click="operation" phx-value-op="+">+</button>
-
-        <button class="clear" phx-click="clear">C</button>
+          <div class="regions-list">
+            <%= for region <- @regions do %>
+              <span class="region-item">
+                <span class="region-name">
+                  <%= region.flag %>
+                  <%= region.region %>
+                </span>
+                <span class="region-ping"><%= region.ping_ms %>ms</span>
+              </span>
+            <% end %>
+          </div>
+        </div>
       </div>
     </div>
     """

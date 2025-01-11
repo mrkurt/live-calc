@@ -15,8 +15,9 @@ defmodule CalculatorWeb.Router do
   end
 
   scope "/", CalculatorWeb do
-    pipe_through :browser
+    get "/health", HealthController, :check
 
+    pipe_through :browser
     live "/", CalculatorLive
   end
 
