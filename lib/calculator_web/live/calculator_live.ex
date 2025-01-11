@@ -14,6 +14,7 @@ defmodule CalculatorWeb.CalculatorLive do
 
     {:ok, assign(socket,
       display: "0",
+      formula: "",
       first_number: nil,
       operation: nil,
       next_clear: false
@@ -25,6 +26,7 @@ defmodule CalculatorWeb.CalculatorLive do
     if assigns.display != "0" or assigns.first_number != nil do
       current_state = %{
         display: assigns.display,
+        formula: assigns.formula,
         first_number: assigns.first_number,
         operation: assigns.operation,
         next_clear: assigns.next_clear
@@ -49,28 +51,36 @@ defmodule CalculatorWeb.CalculatorLive do
     {:noreply, assign(socket, display: new_display, next_clear: false)}
   end
 
-  def handle_event("operation", %{"op" => op}, %{assigns: %{display: display}} = socket) do
+  def handle_event("operation", %{"op" => op}, %{assigns: %{display: display, first_number: first, operation: prev_op, formula: formula}} = socket) do
+    operator_symbol = get_operator_symbol(op)
+    current = parse_number(display)
+
+    {new_number, new_formula} = if first != nil and prev_op != nil do
+      # If we have a previous operation, calculate it first
+      result = calculate(first, current, prev_op) |> format_result()
+      {parse_number(result), "#{formula} #{display} #{operator_symbol}"}
+    else
+      {current, "#{display} #{operator_symbol}"}
+    end
+
     new_state = %{
-      first_number: parse_number(display),
+      first_number: new_number,
       operation: op,
-      next_clear: true
+      next_clear: true,
+      formula: new_formula,
+      display: format_result(new_number)
     }
     broadcast_change(new_state)
     {:noreply, assign(socket, new_state)}
   end
 
-  def handle_event("calculate", _params, %{assigns: %{display: display, first_number: first, operation: op}} = socket) when not is_nil(first) and not is_nil(op) do
+  def handle_event("calculate", _params, %{assigns: %{display: display, first_number: first, operation: op, formula: formula}} = socket) when not is_nil(first) and not is_nil(op) do
     second = parse_number(display)
-    result = case op do
-      "+" -> Float.to_string(first + second)
-      "-" -> Float.to_string(first - second)
-      "*" -> Float.to_string(first * second)
-      "/" -> Float.to_string(first / second)
-    end
-    |> format_result()
+    result = calculate(first, second, op) |> format_result()
 
     new_state = %{
       display: result,
+      formula: "#{formula} #{display} = #{result}",
       first_number: nil,
       operation: nil,
       next_clear: true
@@ -82,6 +92,7 @@ defmodule CalculatorWeb.CalculatorLive do
   def handle_event("clear", _params, socket) do
     new_state = %{
       display: "0",
+      formula: "",
       first_number: nil,
       operation: nil,
       next_clear: false
@@ -92,6 +103,24 @@ defmodule CalculatorWeb.CalculatorLive do
 
   defp broadcast_change(new_state) do
     Phoenix.PubSub.broadcast(Calculator.PubSub, @topic, {:calculator_update, new_state})
+  end
+
+  defp get_operator_symbol(op) do
+    case op do
+      "+" -> "+"
+      "-" -> "-"
+      "*" -> "×"
+      "/" -> "÷"
+    end
+  end
+
+  defp calculate(first, second, op) do
+    case op do
+      "+" -> first + second
+      "-" -> first - second
+      "*" -> first * second
+      "/" -> first / second
+    end
   end
 
   defp parse_number(string) do
@@ -113,27 +142,30 @@ defmodule CalculatorWeb.CalculatorLive do
   def render(assigns) do
     ~H"""
     <div class="calculator-container">
-      <div class="display"><%= @display %></div>
+      <div class="display-container">
+        <div class="formula"><%= @formula %></div>
+        <div class="display"><%= @display %></div>
+      </div>
       <div class="keypad">
         <button phx-click="digit" phx-value-digit="7">7</button>
         <button phx-click="digit" phx-value-digit="8">8</button>
         <button phx-click="digit" phx-value-digit="9">9</button>
-        <button phx-click="operation" phx-value-op="/">/</button>
+        <button class={"operator #{if @operation == "/", do: "active"}"} phx-click="operation" phx-value-op="/">/</button>
 
         <button phx-click="digit" phx-value-digit="4">4</button>
         <button phx-click="digit" phx-value-digit="5">5</button>
         <button phx-click="digit" phx-value-digit="6">6</button>
-        <button phx-click="operation" phx-value-op="*">×</button>
+        <button class={"operator #{if @operation == "*", do: "active"}"} phx-click="operation" phx-value-op="*">×</button>
 
         <button phx-click="digit" phx-value-digit="1">1</button>
         <button phx-click="digit" phx-value-digit="2">2</button>
         <button phx-click="digit" phx-value-digit="3">3</button>
-        <button phx-click="operation" phx-value-op="-">-</button>
+        <button class={"operator #{if @operation == "-", do: "active"}"} phx-click="operation" phx-value-op="-">-</button>
 
         <button phx-click="digit" phx-value-digit="0">0</button>
         <button phx-click="digit" phx-value-digit=".">.</button>
-        <button phx-click="calculate">=</button>
-        <button phx-click="operation" phx-value-op="+">+</button>
+        <button class="equals" phx-click="calculate">=</button>
+        <button class={"operator #{if @operation == "+", do: "active"}"} phx-click="operation" phx-value-op="+">+</button>
 
         <button class="clear" phx-click="clear">C</button>
       </div>
