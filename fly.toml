@@ -1,0 +1,29 @@
+# fly.toml app configuration file generated for live-calc-demo
+app = "live-calc-demo"
+primary_region = "atl"
+kill_signal = "SIGTERM"
+kill_timeout = "5s"
+
+[build]
+
+[env]
+  PHX_HOST = "live-calc-demo.fly.dev"
+  PORT = "8080"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = true
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ["app"]
+
+  [http_service.concurrency]
+    type = "connections"
+    hard_limit = 1000
+    soft_limit = 1000
+
+[[vm]]
+  memory = "1gb"
+  cpu_kind = "shared"
+  cpus = 1
