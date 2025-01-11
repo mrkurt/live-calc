@@ -245,22 +245,27 @@ defmodule CalculatorWeb.CalculatorLive do
             <span><%= if @client_latency, do: "#{@client_latency}ms", else: "-" %></span>
           </div>
 
-          <div class="flex-1 flex gap-6 justify-end">
-            <%= if Enum.empty?(@regions) do %>
-              <span class="flex items-center gap-2">
-                🏁
-                <span>DEV</span>
-                <span>150ms</span>
-              </span>
-            <% else %>
-              <%= for region <- @regions do %>
-                <span class="flex items-center gap-2">
-                  <%= region.flag %>
-                  <span><%= region.region %></span>
-                  <span><%= region.ping_ms %>ms</span>
-                </span>
-              <% end %>
-            <% end %>
+          <div class="flex-1 flex justify-end">
+            <div class="relative max-w-[50%]">
+              <div class="overflow-x-auto flex gap-6 scrollbar-none">
+                <%= if Enum.empty?(@regions) do %>
+                  <span class="flex items-center gap-2 shrink-0">
+                    🏁
+                    <span>DEV</span>
+                    <span>150ms</span>
+                  </span>
+                <% else %>
+                  <%= for region <- @regions do %>
+                    <span class="flex items-center gap-2 shrink-0">
+                      <%= region.flag %>
+                      <span><%= region.region %></span>
+                      <span><%= region.ping_ms %>ms</span>
+                    </span>
+                  <% end %>
+                <% end %>
+              </div>
+              <div class="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-fuchsia-900/30 to-transparent pointer-events-none"></div>
+            </div>
           </div>
         </div>
       </div>
