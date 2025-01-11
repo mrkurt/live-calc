@@ -45,6 +45,39 @@ defmodule CalculatorWeb.CalculatorLive do
     {:noreply, assign(socket, new_state)}
   end
 
+  # Handle keyboard input
+  def handle_event("keydown", %{"key" => key}, socket) do
+    case key do
+      key when key in ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "."] ->
+        handle_event("digit", %{"digit" => key}, socket)
+
+      "+" -> handle_event("operation", %{"op" => "+"}, socket)
+      "-" -> handle_event("operation", %{"op" => "-"}, socket)
+      "*" -> handle_event("operation", %{"op" => "*"}, socket)
+      "/" -> handle_event("operation", %{"op" => "/"}, socket)
+      "x" -> handle_event("operation", %{"op" => "*"}, socket)
+
+      key when key in ["Enter", "="] -> handle_event("calculate", %{}, socket)
+      key when key in ["Escape", "c", "C"] -> handle_event("clear", %{}, socket)
+
+      "Backspace" ->
+        case socket.assigns.display do
+          "0" -> {:noreply, socket}
+          display when byte_size(display) == 1 ->
+            new_state = %{display: "0", next_clear: false}
+            broadcast_change(new_state)
+            {:noreply, assign(socket, new_state)}
+          display ->
+            new_display = String.slice(display, 0..-2)
+            new_state = %{display: new_display, next_clear: false}
+            broadcast_change(new_state)
+            {:noreply, assign(socket, new_state)}
+        end
+
+      _ -> {:noreply, socket}
+    end
+  end
+
   def handle_event("digit", %{"digit" => digit}, %{assigns: %{display: display, next_clear: next_clear}} = socket) do
     new_display = if next_clear or display == "0", do: digit, else: display <> digit
     broadcast_change(%{display: new_display, next_clear: false})
@@ -141,7 +174,7 @@ defmodule CalculatorWeb.CalculatorLive do
 
   def render(assigns) do
     ~H"""
-    <div class="calculator-container">
+    <div class="calculator-container" phx-window-keydown="keydown">
       <div class="display-container">
         <div class="formula"><%= @formula %></div>
         <div class="display"><%= @display %></div>
