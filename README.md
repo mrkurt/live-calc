@@ -2,6 +2,10 @@
 
 A real-time collaborative calculator built with Phoenix LiveView. Multiple users can interact with the calculator simultaneously, with all operations and state changes synchronized in real-time across all connected clients.
 
+## See it in action
+
+Try out the live demo at [livecalc.fly.dev](https://livecalc.fly.dev). Open it in multiple browsers to see the real-time synchronization.
+
 ## Features
 
 - Basic arithmetic operations (+, -, ×, ÷)
