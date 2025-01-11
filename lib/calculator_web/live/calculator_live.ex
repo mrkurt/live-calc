@@ -237,34 +237,36 @@ defmodule CalculatorWeb.CalculatorLive do
         </div>
       </div>
 
-      <div id="status-bar" phx-hook="Ping" class="fixed bottom-0 left-0 right-0 p-2 bg-fuchsia-900/30 backdrop-blur-sm border-t border-fuchsia-800/20">
-        <div class="max-w-4xl mx-auto px-4 text-sm text-zinc-400 flex items-center">
-          <div class="flex items-center gap-2">
-            <%= Calculator.Regions.get_flag(System.get_env("FLY_REGION")) %>
-            <span><%= System.get_env("FLY_REGION") || "LOCAL" %></span>
-            <span><%= if @client_latency, do: "#{@client_latency}ms", else: "-" %></span>
+      <div id="status-bar" phx-hook="Ping" class="fixed bottom-0 left-0 right-0 bg-fuchsia-900/30 backdrop-blur-sm border-t border-fuchsia-800/20">
+        <div class="w-full text-sm text-zinc-400 flex items-stretch h-10">
+          <div class="flex items-center">
+            <div class="flex items-center gap-2 px-4 h-full">
+              <%= Calculator.Regions.get_flag(System.get_env("FLY_REGION")) %>
+              <span><%= System.get_env("FLY_REGION") || "LOCAL" %></span>
+              <span><%= if @client_latency, do: "#{@client_latency}ms", else: "-" %></span>
+            </div>
           </div>
 
           <div class="flex-1 flex justify-end">
             <div class="relative max-w-[50%]">
-              <div class="overflow-x-auto flex gap-6 scrollbar-none">
+              <div id="region-scroll" phx-hook="ScrollIndicator" class="overflow-x-auto flex h-full">
                 <%= if Enum.empty?(@regions) do %>
-                  <span class="flex items-center gap-2 shrink-0">
+                  <div class="flex items-center gap-2 px-4 shrink-0 h-full">
                     🏁
                     <span>DEV</span>
                     <span>150ms</span>
-                  </span>
+                  </div>
                 <% else %>
                   <%= for region <- @regions do %>
-                    <span class="flex items-center gap-2 shrink-0">
+                    <div class="flex items-center gap-2 px-4 shrink-0 h-full">
                       <%= region.flag %>
                       <span><%= region.region %></span>
                       <span><%= region.ping_ms %>ms</span>
-                    </span>
+                    </div>
                   <% end %>
                 <% end %>
               </div>
-              <div class="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-fuchsia-900/30 to-transparent pointer-events-none"></div>
+              <div id="region-scroll-indicator" class="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-fuchsia-900/30 to-transparent pointer-events-none hidden"></div>
             </div>
           </div>
         </div>
